@@ -1,0 +1,8 @@
+# gdtoolkit lint config. Defaults are good; only loosen what fights Godot idioms.
+max-line-length: 100
+max-file-lines: 600
+function-arguments-number: 8
+excluded_directories: !!set
+  .git: null
+  .godot: null
+  addons: null
