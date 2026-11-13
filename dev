@@ -1,0 +1,150 @@
+#!/usr/bin/env bash
+# Developer task runner for 40 love. Run `./dev help` for the list.
+# CI calls these same commands, so "works on my machine" == "works in CI".
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+GODOT_VERSION="$(cat .godot-version)"
+TOOLS_DIR="${TOOLS_DIR:-$ROOT/.tools}"
+MEDIA_DIR="${MEDIA_DIR:-docs/devlog/media/auto}"
+
+die() { echo "dev: $*" >&2; exit 1; }
+log() { echo "==> $*" >&2; }
+
+# Godot binary: $GODOT, then a local download, then whatever is on PATH.
+godot_bin() {
+	if [[ -n "${GODOT:-}" ]]; then echo "$GODOT"; return; fi
+	local local_bin="$TOOLS_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+	if [[ -x "$local_bin" ]]; then echo "$local_bin"; return; fi
+	if command -v godot >/dev/null; then echo godot; return; fi
+	die "Godot not found. Run './dev setup' or set GODOT=/path/to/godot"
+}
+
+godot() { "$(godot_bin)" "$@"; }
+
+# Godot leaves the main loop running if an -s script fails to parse, so
+# every headless call gets a timeout to keep CI from hanging.
+godot_headless() { timeout "${GODOT_TIMEOUT:-600}" "$(godot_bin)" --headless "$@"; }
+
+# Run with a real (virtual) display when there is none, for rendering.
+with_display() {
+	if [[ -n "${DISPLAY:-}" ]]; then "$@"; return; fi
+	command -v xvfb-run >/dev/null || die "no DISPLAY and no xvfb-run: install xvfb"
+	xvfb-run -a -s "-screen 0 1280x720x24" "$@"
+}
+
+cmd_setup() { # Download the pinned Godot version into .tools/
+	local zip="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+	mkdir -p "$TOOLS_DIR"
+	if [[ ! -x "$TOOLS_DIR/${zip%.zip}" ]]; then
+		log "Downloading Godot $GODOT_VERSION"
+		curl -fsSL -o "$TOOLS_DIR/$zip" \
+			"https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/$zip"
+		unzip -oq "$TOOLS_DIR/$zip" -d "$TOOLS_DIR" && rm "$TOOLS_DIR/$zip"
+	fi
+	"$TOOLS_DIR/${zip%.zip}" --headless --version
+}
+
+cmd_templates() { # Install the Web export templates for the pinned version
+	local dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+	if [[ -f "$dest/web_nothreads_release.zip" ]]; then log "Templates present"; return; fi
+	local tpz="$TOOLS_DIR/templates.tpz"
+	mkdir -p "$TOOLS_DIR" "$dest"
+	if [[ ! -f "$tpz" ]]; then
+		log "Downloading export templates (~1.3 GB, web templates are kept)"
+		curl -fsSL -o "$tpz" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+	fi
+	unzip -joq "$tpz" 'templates/web_nothreads_*' 'templates/version.txt' -d "$dest"
+	rm -f "$tpz"
+	ls "$dest"
+}
+
+cmd_import() { # Import assets and build the class cache (needed once per checkout)
+	# Keep Godot from importing build output, docs media and downloads.
+	mkdir -p build "$TOOLS_DIR" site
+	touch build/.gdignore "$TOOLS_DIR/.gdignore" site/.gdignore
+	godot_headless --import >/dev/null 2>&1 || true
+	[[ -f .godot/global_script_class_cache.cfg ]] || die "import failed"
+}
+
+cmd_test() { # Run the GUT test suite. Extra args go to GUT, e.g. -gselect=test_court
+	cmd_import
+	mkdir -p build
+	godot_headless -s addons/gut/gut_cmdln.gd "$@"
+}
+
+cmd_lint() { # Lint and check formatting (gdtoolkit)
+	gdlint src test tools
+	gdformat --check --line-length 100 src test tools
+}
+
+cmd_fmt() { # Auto-format all GDScript
+	gdformat --line-length 100 src test tools
+}
+
+cmd_check() { # Everything CI checks: lint + tests
+	cmd_lint
+	cmd_test
+}
+
+cmd_run() { # Open the debug viewer. Options: --seed=N --format=one_set --camera=side
+	godot --path . -- "$@"
+}
+
+cmd_media() { # Regenerate devlog charts, screenshots and GIFs into docs/devlog/media/auto
+	cmd_import
+	mkdir -p "$MEDIA_DIR"
+	log "Charts"
+	godot_headless -s res://tools/plot_trajectories.gd -- --out="$MEDIA_DIR"
+	log "Footage"
+	capture rally-broadcast 300 --seed=42 --camera=broadcast
+	capture rally-side 300 --seed=42 --camera=side
+}
+
+# capture NAME FRAMES [viewer args...]: Movie Maker -> PNG frames -> GIF + still.
+capture() {
+	local name="$1" frames="$2"
+	shift 2
+	local tmp
+	tmp="$(mktemp -d)"
+	with_display "$(godot_bin)" --rendering-driver opengl3 \
+		--write-movie "$tmp/f.png" --fixed-fps 30 --quit-after "$frames" -- "$@" \
+		>/dev/null 2>&1
+	cp "$(find "$tmp" -name 'f*.png' | sort | sed -n "$((frames * 2 / 3))p")" "$MEDIA_DIR/$name.png"
+	# Two-pass palette keeps the GIF small and the colours clean.
+	ffmpeg -loglevel error -y -framerate 30 -pattern_type glob -i "$tmp/f*.png" \
+		-vf "fps=20,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none" \
+		"$MEDIA_DIR/$name.gif"
+	rm -r "$tmp"
+	log "wrote $MEDIA_DIR/$name.{png,gif}"
+}
+
+cmd_web() { # Export the Web build to build/web (needs './dev templates')
+	cmd_import
+	rm -rf build/web && mkdir -p build/web
+	godot_headless --export-release "Web" build/web/index.html
+	ls -la build/web
+}
+
+cmd_docs() { # Build the devlog site to site/ ('./dev docs serve' for live preview)
+	if [[ "${1:-}" == "serve" ]]; then mkdocs serve; else mkdocs build --strict; fi
+}
+
+cmd_help() { # Show this help
+	echo "Usage: ./dev <command> [args]"
+	echo
+	grep -E '^cmd_[a-z]+\(\) \{ #' "$0" | sed -E 's/^cmd_([a-z]+)\(\) \{ # (.*)/  \1\t\2/' | expand -t 14
+	echo
+	echo "Environment: GODOT=path overrides the Godot binary (pinned: $GODOT_VERSION)."
+}
+
+main() {
+	local cmd="${1:-help}"
+	shift || true
+	declare -F "cmd_$cmd" >/dev/null || { cmd_help; die "unknown command: $cmd"; }
+	"cmd_$cmd" "$@"
+}
+
+main "$@"
