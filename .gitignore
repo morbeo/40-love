@@ -1,0 +1,15 @@
+# Godot
+.godot/
+*.translation
+export_credentials.cfg
+
+# Build output
+build/
+site/
+/tmp/
+
+# Local tool downloads (./dev setup)
+.tools/
+
+# Downloaded by ./dev setup
+addons/gut/
