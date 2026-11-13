@@ -30,6 +30,7 @@ Lint, format and docs need Python: `pip install -r requirements-dev.txt`.
 |---|---|
 | `src/sim/` | Pure, deterministic simulation. No nodes, no rendering |
 | `test/` | GUT unit and integration tests |
+| `tools/` | Headless scripts (devlog chart generator) |
 | `docs/` | The devlog (MkDocs Material) |
 | `dev` | Task runner, used locally and in CI |
 
