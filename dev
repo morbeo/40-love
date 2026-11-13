@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+# Developer task runner for 40 love. Run `./dev help` for the list.
+# CI calls these same commands, so "works on my machine" == "works in CI".
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$ROOT"
+
+GODOT_VERSION="$(cat .godot-version)"
+# The GUT test framework is downloaded by ./dev setup, not committed.
+GUT_VERSION="9.7.1"
+TOOLS_DIR="${TOOLS_DIR:-$ROOT/.tools}"
+
+die() { echo "dev: $*" >&2; exit 1; }
+log() { echo "==> $*" >&2; }
+
+# Godot binary: $GODOT, then a local download, then whatever is on PATH.
+godot_bin() {
+	if [[ -n "${GODOT:-}" ]]; then echo "$GODOT"; return; fi
+	local local_bin="$TOOLS_DIR/Godot_v${GODOT_VERSION}-stable_linux.x86_64"
+	if [[ -x "$local_bin" ]]; then echo "$local_bin"; return; fi
+	if command -v godot >/dev/null; then echo godot; return; fi
+	die "Godot not found. Run './dev setup' or set GODOT=/path/to/godot"
+}
+
+godot() { "$(godot_bin)" "$@"; }
+
+# Godot leaves the main loop running if an -s script fails to parse, so
+# every headless call gets a timeout to keep CI from hanging.
+godot_headless() { timeout "${GODOT_TIMEOUT:-600}" "$(godot_bin)" --headless "$@"; }
+
+cmd_setup() { # Download the pinned Godot (into .tools/) and GUT (into addons/gut/)
+	local zip="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+	mkdir -p "$TOOLS_DIR"
+	if [[ ! -x "$TOOLS_DIR/${zip%.zip}" ]]; then
+		log "Downloading Godot $GODOT_VERSION"
+		curl -fsSL -o "$TOOLS_DIR/$zip" \
+			"https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/$zip"
+		unzip -oq "$TOOLS_DIR/$zip" -d "$TOOLS_DIR" && rm "$TOOLS_DIR/$zip"
+	fi
+	"$TOOLS_DIR/${zip%.zip}" --headless --version
+	if ! grep -qs "version=\"$GUT_VERSION\"" addons/gut/plugin.cfg; then
+		log "Downloading GUT $GUT_VERSION"
+		local tmp
+		tmp="$(mktemp -d)"
+		git clone -q -c advice.detachedHead=false --depth 1 --branch "v$GUT_VERSION" \
+			https://github.com/bitwes/Gut "$tmp/gut"
+		rm -rf addons/gut && mkdir -p addons && cp -r "$tmp/gut/addons/gut" addons/gut
+		rm -rf "$tmp"
+	fi
+	echo "GUT $GUT_VERSION"
+}
+
+cmd_import() { # Import assets and build the class cache (needed once per checkout)
+	# Keep Godot from importing build output, docs media and downloads.
+	mkdir -p build "$TOOLS_DIR" site
+	touch build/.gdignore "$TOOLS_DIR/.gdignore" site/.gdignore
+	godot_headless --import >/dev/null 2>&1 || true
+	[[ -f .godot/global_script_class_cache.cfg ]] || die "import failed"
+}
+
+cmd_test() { # Run the GUT test suite. Extra args go to GUT, e.g. -gselect=test_court
+	[[ -f addons/gut/gut_cmdln.gd ]] || die "GUT missing: run './dev setup'"
+	cmd_import
+	mkdir -p build
+	godot_headless -s addons/gut/gut_cmdln.gd "$@"
+}
+
+# GDScript folders that exist on this branch.
+gd_dirs() { for d in src test tools; do [[ -d "$d" ]] && echo "$d"; done; }
+
+cmd_lint() { # Lint and check formatting (gdtoolkit)
+	# shellcheck disable=SC2046
+	gdlint $(gd_dirs)
+	# shellcheck disable=SC2046
+	gdformat --check --line-length 100 $(gd_dirs)
+}
+
+cmd_fmt() { # Auto-format all GDScript
+	# shellcheck disable=SC2046
+	gdformat --line-length 100 $(gd_dirs)
+}
+
+cmd_check() { # Everything CI checks: lint + tests
+	cmd_lint
+	cmd_test
+}
+
+cmd_docs() { # Build the devlog site to site/ ('./dev docs serve' for live preview)
+	if [[ "${1:-}" == "serve" ]]; then mkdocs serve; else mkdocs build --strict; fi
+}
+
+cmd_help() { # Show this help
+	echo "Usage: ./dev <command> [args]"
+	echo
+	grep -E '^cmd_[a-z]+\(\) \{ #' "$0" | sed -E 's/^cmd_([a-z]+)\(\) \{ # (.*)/  \1\t\2/' | expand -t 14
+	echo
+	echo "Environment: GODOT=path overrides the Godot binary (pinned: $GODOT_VERSION)."
+}
+
+main() {
+	local cmd="${1:-help}"
+	shift || true
+	declare -F "cmd_$cmd" >/dev/null || { cmd_help; die "unknown command: $cmd"; }
+	"cmd_$cmd" "$@"
+}
+
+main "$@"
