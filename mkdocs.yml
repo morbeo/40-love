@@ -21,6 +21,7 @@ nav:
   - Home: index.md
   - Devlog:
       - "#0 Setting up the workshop": devlog/000-setup.md
+      - "#1 The court and its coordinates": devlog/001-court.md
 
 markdown_extensions:
   - admonition
