@@ -1,0 +1,65 @@
+# On every push to master: regenerate devlog media from the real game,
+# build the changelog, export the Web build, and publish both as one site:
+#   https://<owner>.github.io/40-love/        devlog
+#   https://<owner>.github.io/40-love/play/   the game
+name: Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history for the changelog
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements-dev.txt
+      - name: Install renderer, virtual display and ffmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb ffmpeg libgl1-mesa-dri libglx-mesa0
+      - uses: ./.github/actions/setup-godot
+        with:
+          templates: "true"
+      - name: Regenerate charts, screenshots and GIFs
+        run: ./dev media
+      - name: Changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: docs/changelog.md
+      - run: ./dev web
+      - run: ./dev docs
+      - name: Put the game under /play
+        run: cp -r build/web site/play
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

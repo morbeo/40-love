@@ -5,6 +5,9 @@ deep, fighting-game-like shot system inspired by *Mario Tennis Aces*. Same
 spirit, our own characters and look. It's built in **Godot 4** and documented
 step by step as a way to learn the engine.
 
+[Play the latest build](https://morbeo.github.io/40-love/play/){ .md-button .md-button--primary }
+[Source on GitHub](https://github.com/morbeo/40-love){ .md-button }
+
 ![Two bots rallying in the debug viewer](devlog/media/auto/rally-broadcast.gif)
 
 ## How to read this devlog
@@ -30,6 +33,7 @@ Each entry matches one small pull request. Every entry has:
 | 4 | [The rules: referee and scoring](devlog/004-rules.md) |
 | 5 | [The match loop and determinism](devlog/005-match-loop.md) |
 | 6 | [Seeing it: a 3D scene built from code](devlog/006-viewer.md) |
+| 7 | [Shipping it: web export and CI/CD](devlog/007-ci-cd.md) |
 
 ## The plan
 
