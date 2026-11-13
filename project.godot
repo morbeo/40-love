@@ -12,6 +12,7 @@ config_version=5
 
 config/name="40 love"
 config/description="Minimalist, procedurally generated arcade tennis."
+run/main_scene="res://scenes/sim_viewer.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
 [display]
