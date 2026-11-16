@@ -25,6 +25,7 @@ func _init() -> void:
 			out = a.substr(6)
 	DirAccess.make_dir_recursive_absolute(out)
 	_write(out.path_join("spin-trajectories.svg"), _spin_chart())
+	_write(out.path_join("flight-time.svg"), _flight_time_chart())
 	quit()
 
 
@@ -37,6 +38,20 @@ func _spin_chart() -> String:
 		["Slice 180 rad/s", "#3b9a5b", _fly(from, v, Ball.make_spin(v, -180.0, 0.0))],
 	]
 	return _chart("Same swing, different spin", series)
+
+
+func _flight_time_chart() -> String:
+	var from := Vector3(0.0, 1.0, 11.5)
+	var target := Vector3(0.0, 0.0, -9.0)
+	var series := []
+	var colors := ["#d1495b", "#2e86ab", "#3b9a5b"]
+	var times := [0.7, 1.0, 1.4]
+	for i in times.size():
+		var spin := Ball.make_spin(target - from, 120.0, 0.0)
+		var v := ShotSolver.solve(from, target, times[i], spin, cfg)
+		var label := "flight %.1f s · %.0f km/h" % [times[i], v.length() * 3.6]
+		series.append([label, colors[i], _fly(from, v, spin)])
+	return _chart("ShotSolver: same target, different flight times", series)
 
 
 ## Runs the real BallPhysics until the second bounce. Returns the points
