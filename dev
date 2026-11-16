@@ -59,6 +59,20 @@ cmd_setup() { # Download the pinned Godot (into .tools/) and GUT (into addons/gu
 	echo "GUT $GUT_VERSION"
 }
 
+cmd_templates() { # Install the Web export templates for the pinned version
+	local dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+	if [[ -f "$dest/web_nothreads_release.zip" ]]; then log "Templates present"; return; fi
+	local tpz="$TOOLS_DIR/templates.tpz"
+	mkdir -p "$TOOLS_DIR" "$dest"
+	if [[ ! -f "$tpz" ]]; then
+		log "Downloading export templates (~1.3 GB, web templates are kept)"
+		curl -fsSL -o "$tpz" "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+	fi
+	unzip -joq "$tpz" 'templates/web_nothreads_*' 'templates/version.txt' -d "$dest"
+	rm -f "$tpz"
+	ls "$dest"
+}
+
 cmd_import() { # Import assets and build the class cache (needed once per checkout)
 	# Keep Godot from importing build output, docs media and downloads.
 	mkdir -p build "$TOOLS_DIR" site
@@ -124,6 +138,13 @@ capture() {
 		"$MEDIA_DIR/$name.gif"
 	rm -r "$tmp"
 	log "wrote $MEDIA_DIR/$name.{png,gif}"
+}
+
+cmd_web() { # Export the Web build to build/web (needs './dev templates')
+	cmd_import
+	rm -rf build/web && mkdir -p build/web
+	godot_headless --export-release "Web" build/web/index.html
+	ls -la build/web
 }
 
 cmd_docs() { # Build the devlog site to site/ ('./dev docs serve' for live preview)
