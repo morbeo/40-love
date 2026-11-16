@@ -10,6 +10,7 @@ GODOT_VERSION="$(cat .godot-version)"
 # The GUT test framework is downloaded by ./dev setup, not committed.
 GUT_VERSION="9.7.1"
 TOOLS_DIR="${TOOLS_DIR:-$ROOT/.tools}"
+MEDIA_DIR="${MEDIA_DIR:-docs/devlog/media/auto}"
 
 die() { echo "dev: $*" >&2; exit 1; }
 log() { echo "==> $*" >&2; }
@@ -84,6 +85,13 @@ cmd_fmt() { # Auto-format all GDScript
 cmd_check() { # Everything CI checks: lint + tests
 	cmd_lint
 	cmd_test
+}
+
+cmd_media() { # Regenerate devlog charts into docs/devlog/media/auto
+	cmd_import
+	mkdir -p "$MEDIA_DIR"
+	log "Charts"
+	godot_headless -s res://tools/plot_trajectories.gd -- --out="$MEDIA_DIR"
 }
 
 cmd_docs() { # Build the devlog site to site/ ('./dev docs serve' for live preview)
