@@ -9,12 +9,15 @@ code.
   features behind it, and the design decisions. Preview it with
   `./dev docs serve`.
 
+![Two bots rallying in the debug viewer](docs/devlog/media/auto/rally-broadcast.gif)
+
 ## Quick start
 
 Linux or macOS with `bash`, `curl`, `git` and `unzip`:
 
 ```bash
 ./dev setup     # download the pinned Godot (.tools/) and GUT (addons/gut/)
+./dev run       # watch two bots play; try --seed=7 --camera=side --format=best_of_3
 ./dev test      # run the test suite
 ./dev help      # everything else
 ```
@@ -29,6 +32,8 @@ Lint, format and docs need Python: `pip install -r requirements-dev.txt`.
 | Path | What |
 |---|---|
 | `src/sim/` | Pure, deterministic simulation. No nodes, no rendering |
+| `src/view/` | Nodes that draw the sim |
+| `scenes/` | Scene files |
 | `test/` | GUT unit and integration tests |
 | `tools/` | Headless scripts (devlog chart generator) |
 | `docs/` | The devlog (MkDocs Material) |
