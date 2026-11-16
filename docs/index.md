@@ -26,6 +26,7 @@ Each entry matches one small pull request. Every entry has:
 | 2 | [The ball: flight, bounce and net](devlog/002-ball.md) |
 | 3 | [Aiming: the shot solver](devlog/003-shot-solver.md) |
 | 4 | [The rules: referee and scoring](devlog/004-rules.md) |
+| 5 | [The match loop and determinism](devlog/005-match-loop.md) |
 
 ## The plan
 
