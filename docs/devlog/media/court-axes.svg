@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 500" font-family="system-ui, sans-serif" font-size="13">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<defs><marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#1d2430"/></marker><marker id="arrs" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d1495b"/></marker></defs>
+<rect x="164.16" y="59.84" width="131.68000000000004" height="380.31999999999994" fill="#3e6fb0"/>
+<rect x="164.16" y="147.6" width="65.84" height="102.4" fill="#d9ef3c" fill-opacity="0.45"/>
+<rect x="164.16" y="59.84" width="131.68000000000004" height="380.31999999999994" fill="none" stroke="#f7f7f2" stroke-width="2"/>
+<line x1="164.16" y1="147.6" x2="295.84000000000003" y2="147.6" stroke="#f7f7f2" stroke-width="2"/>
+<line x1="164.16" y1="352.4" x2="295.84000000000003" y2="352.4" stroke="#f7f7f2" stroke-width="2"/>
+<line x1="230" y1="147.6" x2="230" y2="352.4" stroke="#f7f7f2" stroke-width="2"/>
+<line x1="149.536" y1="250" x2="310.464" y2="250" stroke="#1d2430" stroke-width="3"/>
+<circle cx="242.8" cy="444.96000000000004" r="5" fill="#d1495b"/>
+<line x1="242.8" y1="444.96000000000004" x2="194.8" y2="182.8" stroke="#d1495b" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrs)"/>
+<line x1="230" y1="250" x2="300" y2="250" stroke="#1d2430" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="230" y1="250" x2="230" y2="320" stroke="#1d2430" stroke-width="2" marker-end="url(#arr)"/>
+<text x="268" y="238" fill="#1d2430" font-weight="600">+X</text>
+<text x="236" y="334" fill="#1d2430" font-weight="600">+Z</text>
+<circle cx="230" cy="250" r="4" fill="#1d2430"/>
+<text x="230" y="45.84" fill="#1d2430" text-anchor="middle" font-weight="600">FAR  (z &lt; 0) · CPU</text>
+<text x="230" y="480.15999999999997" fill="#1d2430" text-anchor="middle" font-weight="600">NEAR  (z &gt; 0) · you, camera behind here</text>
+<text x="141.536" y="254" fill="#1d2430" text-anchor="end" font-weight="400">net, z = 0</text>
+<text x="380" y="70" fill="#5b6577" text-anchor="start" font-weight="400">Y points up, out of the page.</text>
+<text x="380" y="92" fill="#5b6577" text-anchor="start" font-weight="400">Origin = centre of the net.</text>
+<text x="380" y="114" fill="#5b6577" text-anchor="start" font-weight="400">Units: metres (ITF singles).</text>
+<text x="380" y="160" fill="#d1495b" text-anchor="start" font-weight="400">Red: NEAR serves from the</text>
+<text x="380" y="180" fill="#d1495b" text-anchor="start" font-weight="400">deuce court (its right, +X)</text>
+<text x="380" y="200" fill="#d1495b" text-anchor="start" font-weight="400">diagonally into the</text>
+<text x="380" y="220" fill="#d1495b" text-anchor="start" font-weight="400">highlighted box.</text>
+<text x="301.84000000000003" y="356.4" fill="#5b6577" text-anchor="start" font-weight="400">service line</text>
+<text x="301.84000000000003" y="444.15999999999997" fill="#5b6577" text-anchor="start" font-weight="400">baseline</text>
+</svg>

@@ -22,6 +22,7 @@ Each entry matches one small pull request. Every entry has:
 | # | Entry |
 |---|---|
 | 0 | [Setting up the workshop](devlog/000-setup.md) |
+| 1 | [The court and its coordinates](devlog/001-court.md) |
 
 ## The plan
 
