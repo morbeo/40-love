@@ -30,6 +30,13 @@ godot() { "$(godot_bin)" "$@"; }
 # every headless call gets a timeout to keep CI from hanging.
 godot_headless() { timeout "${GODOT_TIMEOUT:-600}" "$(godot_bin)" --headless "$@"; }
 
+# Run with a real (virtual) display when there is none, for rendering.
+with_display() {
+	if [[ -n "${DISPLAY:-}" ]]; then "$@"; return; fi
+	command -v xvfb-run >/dev/null || die "no DISPLAY and no xvfb-run: install xvfb"
+	xvfb-run -a -s "-screen 0 1280x720x24" "$@"
+}
+
 cmd_setup() { # Download the pinned Godot (into .tools/) and GUT (into addons/gut/)
 	local zip="Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
 	mkdir -p "$TOOLS_DIR"
@@ -87,11 +94,36 @@ cmd_check() { # Everything CI checks: lint + tests
 	cmd_test
 }
 
-cmd_media() { # Regenerate devlog charts into docs/devlog/media/auto
+cmd_run() { # Open the debug viewer. Options: --seed=N --format=one_set --camera=side
+	godot --path . -- "$@"
+}
+
+cmd_media() { # Regenerate devlog charts, screenshots and GIFs into docs/devlog/media/auto
 	cmd_import
 	mkdir -p "$MEDIA_DIR"
 	log "Charts"
 	godot_headless -s res://tools/plot_trajectories.gd -- --out="$MEDIA_DIR"
+	log "Footage"
+	capture rally-broadcast 300 --seed=42 --camera=broadcast
+	capture rally-side 300 --seed=42 --camera=side
+}
+
+# capture NAME FRAMES [viewer args...]: Movie Maker -> PNG frames -> GIF + still.
+capture() {
+	local name="$1" frames="$2"
+	shift 2
+	local tmp
+	tmp="$(mktemp -d)"
+	with_display "$(godot_bin)" --rendering-driver opengl3 \
+		--write-movie "$tmp/f.png" --fixed-fps 30 --quit-after "$frames" -- "$@" \
+		>/dev/null 2>&1
+	cp "$(find "$tmp" -name 'f*.png' | sort | sed -n "$((frames * 2 / 3))p")" "$MEDIA_DIR/$name.png"
+	# Two-pass palette keeps the GIF small and the colours clean.
+	ffmpeg -loglevel error -y -framerate 30 -pattern_type glob -i "$tmp/f*.png" \
+		-vf "fps=20,scale=640:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=64[p];[b][p]paletteuse=dither=none" \
+		"$MEDIA_DIR/$name.gif"
+	rm -r "$tmp"
+	log "wrote $MEDIA_DIR/$name.{png,gif}"
 }
 
 cmd_docs() { # Build the devlog site to site/ ('./dev docs serve' for live preview)
