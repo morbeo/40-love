@@ -24,6 +24,7 @@ nav:
       - "#1 The court and its coordinates": devlog/001-court.md
       - "#2 The ball: flight, bounce and net": devlog/002-ball.md
       - "#3 Aiming: the shot solver": devlog/003-shot-solver.md
+      - "#4 The rules: referee and scoring": devlog/004-rules.md
 
 markdown_extensions:
   - admonition
