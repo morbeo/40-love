@@ -1,0 +1,32 @@
+# Reusable step: install the Godot version pinned in .godot-version (cached),
+# optionally the Web export templates (cached), and import the project.
+name: Setup Godot
+description: Install pinned Godot (and optionally Web export templates), cached.
+
+inputs:
+  templates:
+    description: Also install Web export templates
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      run: echo "godot=$(cat .godot-version)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache@v4
+      with:
+        path: .tools
+        key: godot-${{ runner.os }}-${{ steps.version.outputs.godot }}
+    - shell: bash
+      run: ./dev setup
+    - if: inputs.templates == 'true'
+      uses: actions/cache@v4
+      with:
+        path: ~/.local/share/godot/export_templates
+        key: godot-templates-web-${{ steps.version.outputs.godot }}
+    - if: inputs.templates == 'true'
+      shell: bash
+      run: ./dev templates
+    - shell: bash
+      run: ./dev import

@@ -5,9 +5,9 @@ in Godot 4, with a deep, fighting-game-like shot system inspired by *Mario
 Tennis Aces*. There are no imported assets: everything you see is generated in
 code.
 
-- **Devlog:** [`docs/`](docs/index.md) explains every step, the Godot
-  features behind it, and the design decisions. Preview it with
-  `./dev docs serve`.
+- **Play:** https://morbeo.github.io/40-love/play/
+- **Devlog:** https://morbeo.github.io/40-love/ explains every step, the
+  Godot features behind it, and the design decisions.
 
 ![Two bots rallying in the debug viewer](docs/devlog/media/auto/rally-broadcast.gif)
 
